@@ -1,64 +1,32 @@
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from aiogram.utils import executor
-import logging
+from aiogram.utils.executor import start_webhook
 import os
 
-API_TOKEN = os.getenv("BOT_TOKEN")  # Токен нужно указать в Render → Environment
+API_TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_HOST = 'https://online-cargo.onrender.com'  # замени на свой адрес
+WEBHOOK_PATH = f'/webhook/{API_TOKEN}'
+WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 
-logging.basicConfig(level=logging.INFO)
+WEBAPP_HOST = '0.0.0.0'
+WEBAPP_PORT = int(os.environ.get('PORT', 5000))
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
-# Кнопки
-keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
-keyboard.add(
-    KeyboardButton("Нархнома 💱"),
-    KeyboardButton("Тафтиши трек-код ♻️"),
-)
-keyboard.add(
-    KeyboardButton("Суроғаи мо 📍"),
-    KeyboardButton("Тарзи пур кардани адрес ㊙️"),
-)
-keyboard.add(
-    KeyboardButton("Молҳои манъшуда 🚫"),
-)
+# Здесь твои handlers и кнопки
 
-# Обработчик /start
-@dp.message_handler(commands=['start'])
-async def send_welcome(message: types.Message):
-    await message.reply("Салом! Ман боти ширкати ONLINE CARGO TJ ҳастам. Лутфан, фармонро интихоб кунед:", reply_markup=keyboard)
+async def on_startup(dp):
+    await bot.set_webhook(WEBHOOK_URL)
 
-# Обработчик всех кнопок
-@dp.message_handler(lambda message: message.text)
-async def handle_message(message: types.Message):
-    text = message.text
-
-    if text == "Нархнома 💱":
-        await message.reply("Лутфан барои нархнома бо оператор тамос гиред.")
-
-    elif text == "Тафтиши трек-код ♻️":
-        await message.reply("Лутфан трек-кодро фиристед ва ман онро тафтиш мекунам.")
-
-    elif text == "Суроғаи мо 📍":
-        await message.reply("ш. Душанбе, н. Фирдавси")
-
-    elif text == "Тарзи пур кардани адрес ㊙️":
-        await message.reply_photo(photo=open("address-example.jpg", "rb"), caption="Ин намунаи пур кардани адрес дар Чин мебошад.")
-
-    elif text == "Молҳои манъшуда 🚫":
-        await message.reply(
-            "Молҳои манъшуда:\n"
-            "- Вейпҳо\n"
-            "- Кальяны\n"
-            "- Ҳамаи намудҳои силоҳ (ҳатто бозичаҳо)\n"
-            "- Маҳсулоти 18+\n"
-  
-        )
-    else:
-        await message.reply("Лутфан яке аз тугмаҳоро интихоб кунед.")
+async def on_shutdown(dp):
+    await bot.delete_webhook()
 
 if __name__ == '__main__':
-    from aiogram import executor
-    executor.start_polling(dp, skip_updates=True)
+    start_webhook(
+        dispatcher=dp,
+        webhook_path=WEBHOOK_PATH,
+        on_startup=on_startup,
+        on_shutdown=on_shutdown,
+        host=WEBAPP_HOST,
+        port=WEBAPP_PORT,
+    )
